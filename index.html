@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>番茄翻譯 Tomato Translate</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @font-face {
+      font-family: 'SweiGothicTC';
+      src: url('/static/fonts/SweiGothicCJKtc-Medium.woff2') format('woff2'),
+           url('/static/fonts/SweiGothicCJKtc-Medium.woff') format('woff');
+    }
+
+    body {
+      margin: 0;
+      font-family: 'SweiGothicTC', 'Segoe UI', '微軟正黑體', sans-serif;
+      background: linear-gradient(135deg, #ffe7d1, #fffbe6);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    .wrapper {
+      max-width: 700px;
+      width: 100%;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      color: tomato;
+      margin: 0;
+    }
+
+    .field {
+      margin-bottom: 1.5rem;
+    }
+
+    .dropdown {
+      position: relative;
+      width: 100%;
+    }
+
+    .dropdown-btn {
+      padding: 12px;
+      width: 100%;
+      font-size: 1em;
+      background: #f8f8f8;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+      position: relative;
+    }
+
+    .dropdown-btn::after {
+      content: "\25BC";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #888;
+      font-size: 0.8em;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 110%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      display: none;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 10;
+      opacity: 0;
+      transform: scaleY(0.95);
+      transform-origin: top;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-menu.active {
+      display: block;
+      opacity: 1;
+      transform: scaleY(1);
+    }
+
+    .dropdown-menu div {
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    .dropdown-menu div:hover {
+      background-color: #ffe4d1;
+    }
+
+    textarea {
+      width: 100%;
+      height: 140px;
+      padding: 12px;
+      font-size: 1em;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      resize: vertical;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.1em;
+      border: none;
+      background-color: tomato;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+
+    #result {
+      margin-top: 2rem;
+      background: #f4f4f4;
+      padding: 1rem;
+      border-radius: 12px;
+      font-size: 1.1em;
+      white-space: pre-wrap;
+    }
+
+    #detected-lang {
+      font-size: 0.9em;
+      color: #888;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <h1>番茄翻譯 🍅</h1>
+    </header>
+
+    <div class="field">
+      <label>目標語言：</label>
+      <div class="dropdown" id="langDropdown">
+        <div class="dropdown-btn" id="selectedLang">繁體中文</div>
+        <div class="dropdown-menu" id="langMenu">
+          <div>繁體中文</div>
+          <div>簡體中文</div>
+          <div>英文</div>
+          <div>日文</div>
+          <div>韓文</div>
+          <div>法文</div>
+          <div>德文</div>
+          <div>西班牙文</div>
+          <div>泰文</div>
+          <div>越南文</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <textarea id="input" placeholder="請輸入要翻譯的文字..."></textarea>
+    </div>
+
+    <button onclick="translate()">翻譯</button>
+
+    <div id="result">（翻譯結果將顯示在這裡）</div>
+    <div id="detected-lang"></div>
+  </div>
+
+  <script>
+    const dropdownBtn = document.getElementById("selectedLang");
+    const dropdownMenu = document.getElementById("langMenu");
+
+    dropdownBtn.addEventListener("click", () => {
+      dropdownMenu.classList.toggle("active");
+    });
+
+    dropdownMenu.querySelectorAll("div").forEach(option => {
+      option.addEventListener("click", () => {
+        dropdownBtn.textContent = option.textContent;
+        dropdownMenu.classList.remove("active");
+      });
+    });
+
+    window.addEventListener("click", e => {
+      if (!document.getElementById("langDropdown").contains(e.target)) {
+        dropdownMenu.classList.remove("active");
+      }
+    });
+
+    async function translate() {
+      const input = document.getElementById("input").value;
+      const lang = document.getElementById("selectedLang").textContent;
+      document.getElementById("result").innerText = "翻譯中...";
+      document.getElementById("detected-lang").innerText = "來源語言：偵測中...";
+
+      try {
+        const res = await fetch("/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: input, target_lang: lang })
+        });
+        const data = await res.json();
+        document.getElementById("result").innerText = data.result || "錯誤：" + data.error;
+        if (data.detected) {
+          document.getElementById("detected-lang").innerText = "來源語言：" + data.detected;
+        } else {
+          document.getElementById("detected-lang").innerText = "";
+        }
+      } catch (err) {
+        document.getElementById("result").innerText = "發生錯誤，請稍後再試。";
+        document.getElementById("detected-lang").innerText = "";
+      }
+    }
+  </script>
+</body>
+</html>
