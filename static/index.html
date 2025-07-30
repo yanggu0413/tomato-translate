@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>番茄翻譯 Tomato Translate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg-light: #fdfdfd;
+  --bg-dark: #1f1f1f;
+  --card-light: #ffffff;
+  --card-dark: #2a2a2a;
+  --accent: tomato;
+  --text-light: #222;
+  --text-dark: #eee;
+}
+
+body {
+  margin: 0; font-family: 'Segoe UI','微軟正黑體',sans-serif;
+  background: var(--bg-light); color: var(--text-light);
+  display: flex; justify-content: center; padding: 2rem; min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+body.dark { background: var(--bg-dark); color: var(--text-dark); }
+
+.wrapper {
+  width: 100%; max-width: 850px; background: var(--card-light); 
+  border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  padding: 2rem; position: relative; transition: background 0.3s;
+}
+body.dark .wrapper { background: var(--card-dark); }
+
+header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;
+}
+header h1 { font-size: 1.8rem; margin: 0; color: var(--accent); }
+
+.theme-toggle {
+  width: 40px; height: 40px; border: none; border-radius: 50%;
+  background: transparent; cursor: pointer; font-size: 1.3em;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-light); transition: background 0.2s;
+}
+body.dark .theme-toggle { color: var(--text-dark); }
+.theme-toggle:hover { background: rgba(0,0,0,0.05); }
+
+.field { margin-bottom: 1.2rem; }
+
+.dropdown { position: relative; }
+.dropdown-btn {
+  padding: 12px; width: 100%; font-size: 1em; background: #f8f8f8;
+  border: 1px solid #ccc; border-radius: 10px; cursor: pointer; text-align: left;
+}
+body.dark .dropdown-btn { background: #444; border-color: #666; color: #eee; }
+.dropdown-btn::after {
+  content: "▼"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 0.8em; color: #888;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute; top: 110%; left: 0; right: 0; background: #fff;
+  border: 1px solid #ccc; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  max-height: 250px; overflow-y: auto; z-index: 10;
+}
+.dropdown-menu.active { display: block; }
+body.dark .dropdown-menu { background: #444; border-color: #666; }
+.dropdown-menu div { padding: 10px 14px; cursor: pointer; }
+.dropdown-menu div:hover { background-color: #ffe4d1; }
+body.dark .dropdown-menu div:hover { background: #555; }
+
+textarea {
+  border: 1px solid #ccc; border-radius: 10px; width: 100%;
+  padding: 12px; font-size: 1.4em; line-height: 1.6;
+  height: 150px; resize: vertical; margin-bottom: 1rem;
+}
+body.dark textarea { background: #444; color: #eee; border-color: #666; }
+
+button.action {
+  width: 100%; background: var(--accent); color: #fff; font-weight: bold; border: none;
+  border-radius: 10px; cursor: pointer; margin-top: 1.2rem; font-size: 1.1em; padding: 12px;
+}
+button.action:hover { background: #ff6347; }
+
+.result-container {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-top: 1.8rem;
+}
+.result-box {
+  background: #f5f5f5; border-radius: 12px; display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+}
+body.dark .result-box { background: #3a3a3a; }
+
+.result-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; font-size: 0.9em; background: rgba(0,0,0,0.05);
+}
+body.dark .result-header { background: rgba(255,255,255,0.08); }
+
+.result-text { padding: 10px; min-height: 100px; white-space: pre-wrap; flex: 1; }
+
+.copy-btn {
+  background: none; border: none; cursor: pointer;
+  width: 32px; height: 32px; padding: 0;
+}
+.copy-btn img {
+  width: 100%; height: auto; display: block;
+}
+
+.loading {
+  display: none;
+  position: absolute;
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-size: 1em; color: var(--accent);
+}
+.result-box.loading-box .loading {
+  display: block;
+}
+.result-box.loading-box .result-text {
+  opacity: 0.4;
+}
+
+.toast {
+  position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8);
+  color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.9em;
+  opacity: 0; transition: opacity 0.3s;
+}
+.toast.show { opacity: 1; }
+
+@media (max-width: 700px) {
+  .result-container { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <h1>番茄翻譯 🍅</h1>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+  </header>
+
+  <div class="field">
+    <label>目標語言：</label>
+    <div class="dropdown" id="langDropdown">
+      <div class="dropdown-btn" id="selectedLang">繁體中文</div>
+      <div class="dropdown-menu" id="langMenu"></div>
+    </div>
+  </div>
+
+  <textarea id="input" placeholder="請輸入要翻譯的文字..."></textarea>
+  <button class="action" id="translateBtn">翻譯</button>
+
+  <div class="result-container">
+    <div class="result-box" id="originalBox">
+      <div class="result-header">
+        <span>原文</span>
+        <button class="copy-btn" onclick="copyText('originalText')"><img src="copy.png" alt="copy"></button>
+      </div>
+      <div class="result-text" id="originalText">（原文）</div>
+      <div class="loading">⏳ 載入中...</div>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <div class="result-header">
+        <span>翻譯結果</span>
+        <button class="copy-btn" onclick="copyText('result')"><img src="copy.png" alt="copy"></button>
+      </div>
+      <div class="result-text" id="result">（翻譯結果）</div>
+      <div class="loading">⏳ 翻譯中...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已複製！</div>
+
+<script>
+const languages = ["繁體中文","簡體中文","英文","日文","韓文","法文","德文","西班牙文","泰文","越南文"];
+const dropdownBtn = document.getElementById("selectedLang");
+const dropdownMenu = document.getElementById("langMenu");
+
+/* 初始化語言選單 */
+dropdownMenu.innerHTML = languages.map(lang => `<div>${lang}</div>`).join("");
+dropdownBtn.addEventListener("click", () => dropdownMenu.classList.toggle("active"));
+dropdownMenu.querySelectorAll("div").forEach(option => {
+  option.addEventListener("click", () => {
+    dropdownBtn.textContent = option.textContent;
+    dropdownMenu.classList.remove("active");
+  });
+});
+window.addEventListener("click", e => {
+  if (!document.getElementById("langDropdown").contains(e.target)) dropdownMenu.classList.remove("active");
+});
+
+/* 暗色模式 */
+document.getElementById("themeToggle").addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  document.getElementById("themeToggle").textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+});
+
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 1500);
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text);
+  showToast("已複製！");
+}
+
+/* 翻譯函式 */
+async function translate() {
+  const btn = document.getElementById("translateBtn");
+  const input = document.getElementById("input").value.trim();
+  const lang = dropdownBtn.textContent;
+
+  console.log("▶️ 按下翻譯按鈕");
+  console.log("輸入文字：", input);
+  console.log("目標語言：", lang);
+
+  if (!input) {
+    showToast("請先輸入文字！");
+    return;
+  }
+
+  btn.disabled = true;
+  document.getElementById("originalText").textContent = input;
+  document.getElementById("result").textContent = "";
+
+  document.getElementById("originalBox").classList.add("loading-box");
+  document.getElementById("resultBox").classList.add("loading-box");
+
+  try {
+    console.log("📡 發送 fetch /translate");
+    const res = await fetch("/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: input, target_lang: lang })
+    });
+
+    console.log("🌐 伺服器回應狀態：", res.status);
+
+    const data = await res.json();
+    console.log("✅ 收到伺服器回應：", data);
+
+    if (data.error) {
+      document.getElementById("result").textContent = "⚠️ 翻譯失敗：" + data.error;
+    } else {
+      document.getElementById("result").textContent = data.result;
+    }
+  } catch (err) {
+    console.error("❌ fetch 錯誤：", err);
+    document.getElementById("result").textContent = "⚠️ 翻譯時發生錯誤，請稍後再試。";
+  } finally {
+    btn.disabled = false;
+    document.getElementById("originalBox").classList.remove("loading-box");
+    document.getElementById("resultBox").classList.remove("loading-box");
+  }
+}
+
+/* 綁定按鈕事件 */
+document.getElementById("translateBtn").addEventListener("click", translate);
+</script>
+</body>
+</html>
