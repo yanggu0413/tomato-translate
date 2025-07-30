@@ -56,4 +56,6 @@ def translate():
 
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    import os
+    port = int(os.getenv("PORT", 5000))   # Render 會分配一個 PORT 環境變數
+    app.run(host="0.0.0.0", port=port)
