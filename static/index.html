@@ -97,6 +97,10 @@ body.dark .result-box { background: #3a3a3a; }
 }
 body.dark .result-header { background: rgba(255,255,255,0.08); }
 
+#detectedLang {
+  font-size:0.85em; color:gray; padding:5px 10px;
+}
+
 .result-text { padding: 10px; min-height: 100px; white-space: pre-wrap; flex: 1; }
 
 .copy-btn {
@@ -165,6 +169,8 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
         <span>翻譯結果</span>
         <button class="copy-btn" onclick="copyText('result')"><img src="copy.png" alt="copy"></button>
       </div>
+      <!-- 顯示來源語言 -->
+      <div id="detectedLang"></div>
       <div class="result-text" id="result">（翻譯結果）</div>
       <div class="loading">⏳ 翻譯中...</div>
     </div>
@@ -174,11 +180,15 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
 <div class="toast" id="toast">已複製！</div>
 
 <script>
+// 自動判斷 API 位置 (本地 / 線上)
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:5000"
+  : "https://tomato-translate.onrender.com";
+
 const languages = ["繁體中文","簡體中文","英文","日文","韓文","法文","德文","西班牙文","泰文","越南文"];
 const dropdownBtn = document.getElementById("selectedLang");
 const dropdownMenu = document.getElementById("langMenu");
 
-/* 初始化語言選單 */
 dropdownMenu.innerHTML = languages.map(lang => `<div>${lang}</div>`).join("");
 dropdownBtn.addEventListener("click", () => dropdownMenu.classList.toggle("active"));
 dropdownMenu.querySelectorAll("div").forEach(option => {
@@ -191,7 +201,7 @@ window.addEventListener("click", e => {
   if (!document.getElementById("langDropdown").contains(e.target)) dropdownMenu.classList.remove("active");
 });
 
-/* 暗色模式 */
+// 暗色模式
 document.getElementById("themeToggle").addEventListener("click", () => {
   document.body.classList.toggle("dark");
   document.getElementById("themeToggle").textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
@@ -217,9 +227,6 @@ async function translate() {
   const lang = dropdownBtn.textContent;
 
   console.log("▶️ 按下翻譯按鈕");
-  console.log("輸入文字：", input);
-  console.log("目標語言：", lang);
-
   if (!input) {
     showToast("請先輸入文字！");
     return;
@@ -228,31 +235,31 @@ async function translate() {
   btn.disabled = true;
   document.getElementById("originalText").textContent = input;
   document.getElementById("result").textContent = "";
+  document.getElementById("detectedLang").textContent = "";
 
   document.getElementById("originalBox").classList.add("loading-box");
   document.getElementById("resultBox").classList.add("loading-box");
 
   try {
-    console.log("📡 發送 fetch /translate");
-    const res = await fetch("/translate", {
+    console.log("📡 發送請求到：", `${API_BASE}/translate`);
+    const res = await fetch(`${API_BASE}/translate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: input, target_lang: lang })
     });
 
-    console.log("🌐 伺服器回應狀態：", res.status);
-
     const data = await res.json();
-    console.log("✅ 收到伺服器回應：", data);
+    console.log("✅ 收到回應：", data);
 
     if (data.error) {
       document.getElementById("result").textContent = "⚠️ 翻譯失敗：" + data.error;
     } else {
       document.getElementById("result").textContent = data.result;
+      document.getElementById("detectedLang").textContent = "來源語言：" + (data.detected || "未知");
     }
   } catch (err) {
-    console.error("❌ fetch 錯誤：", err);
     document.getElementById("result").textContent = "⚠️ 翻譯時發生錯誤，請稍後再試。";
+    console.error(err);
   } finally {
     btn.disabled = false;
     document.getElementById("originalBox").classList.remove("loading-box");
@@ -260,7 +267,6 @@ async function translate() {
   }
 }
 
-/* 綁定按鈕事件 */
 document.getElementById("translateBtn").addEventListener("click", translate);
 </script>
 </body>
