@@ -5,6 +5,7 @@
 <title>番茄翻譯 Tomato Translate</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+/* ---- 原樣式，和之前相同 ---- */
 :root {
   --bg-light: #fdfdfd;
   --bg-dark: #1f1f1f;
@@ -158,7 +159,10 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
     <div class="result-box" id="originalBox">
       <div class="result-header">
         <span>原文</span>
-        <button class="copy-btn" onclick="copyText('originalText')"><img src="copy.png" alt="copy"></button>
+        <div>
+          <button class="copy-btn" id="speakOriginal"><img src="speaker.png" alt="speak"></button>
+          <button class="copy-btn" onclick="copyText('originalText')"><img src="copy.png" alt="copy"></button>
+        </div>
       </div>
       <div class="result-text" id="originalText">（原文）</div>
       <div class="loading">⏳ 載入中...</div>
@@ -167,9 +171,11 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
     <div class="result-box" id="resultBox">
       <div class="result-header">
         <span>翻譯結果</span>
-        <button class="copy-btn" onclick="copyText('result')"><img src="copy.png" alt="copy"></button>
+        <div>
+          <button class="copy-btn" id="speakResult"><img src="speaker.png" alt="speak"></button>
+          <button class="copy-btn" onclick="copyText('result')"><img src="copy.png" alt="copy"></button>
+        </div>
       </div>
-      <!-- 顯示來源語言 -->
       <div id="detectedLang"></div>
       <div class="result-text" id="result">（翻譯結果）</div>
       <div class="loading">⏳ 翻譯中...</div>
@@ -180,7 +186,6 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
 <div class="toast" id="toast">已複製！</div>
 
 <script>
-// 自動判斷 API 位置 (本地 / 線上)
 const API_BASE = window.location.hostname === "localhost"
   ? "http://localhost:5000"
   : "https://tomato-translate.onrender.com";
@@ -201,7 +206,6 @@ window.addEventListener("click", e => {
   if (!document.getElementById("langDropdown").contains(e.target)) dropdownMenu.classList.remove("active");
 });
 
-// 暗色模式
 document.getElementById("themeToggle").addEventListener("click", () => {
   document.body.classList.toggle("dark");
   document.getElementById("themeToggle").textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
@@ -220,13 +224,57 @@ function copyText(id) {
   showToast("已複製！");
 }
 
-/* 翻譯函式 */
+// 語音朗讀函式
+function speakText(text, langCode = "zh-TW") {
+  if (!window.speechSynthesis) {
+    showToast("⚠️ 瀏覽器不支援語音朗讀！");
+    return;
+  }
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = langCode;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
+// 判斷語言代碼（簡化版）
+function getLangCodeByName(langName) {
+  if (langName.includes("英文")) return "en-US";
+  if (langName.includes("日文")) return "ja-JP";
+  if (langName.includes("韓文")) return "ko-KR";
+  if (langName.includes("西班牙文")) return "es-ES";
+  if (langName.includes("法文")) return "fr-FR";
+  if (langName.includes("德文")) return "de-DE";
+  if (langName.includes("簡體")) return "zh-CN";
+  return "zh-TW";
+}
+
+document.getElementById("speakOriginal").addEventListener("click", () => {
+  const text = document.getElementById("originalText").innerText.trim();
+  const detectedLang = document.getElementById("detectedLang").innerText.replace("來源語言：", "");
+  if (!text) {
+    showToast("⚠️ 沒有原文可朗讀！");
+    return;
+  }
+  const langCode = getLangCodeByName(detectedLang || "英文");
+  speakText(text, langCode);
+});
+
+document.getElementById("speakResult").addEventListener("click", () => {
+  const text = document.getElementById("result").innerText.trim();
+  if (!text) {
+    showToast("⚠️ 沒有翻譯結果可朗讀！");
+    return;
+  }
+  const targetLang = dropdownBtn.textContent;
+  const langCode = getLangCodeByName(targetLang);
+  speakText(text, langCode);
+});
+
 async function translate() {
   const btn = document.getElementById("translateBtn");
   const input = document.getElementById("input").value.trim();
   const lang = dropdownBtn.textContent;
 
-  console.log("▶️ 按下翻譯按鈕");
   if (!input) {
     showToast("請先輸入文字！");
     return;
@@ -241,7 +289,6 @@ async function translate() {
   document.getElementById("resultBox").classList.add("loading-box");
 
   try {
-    console.log("📡 發送請求到：", `${API_BASE}/translate`);
     const res = await fetch(`${API_BASE}/translate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -249,7 +296,6 @@ async function translate() {
     });
 
     const data = await res.json();
-    console.log("✅ 收到回應：", data);
 
     if (data.error) {
       document.getElementById("result").textContent = "⚠️ 翻譯失敗：" + data.error;
