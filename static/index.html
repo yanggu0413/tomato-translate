@@ -135,6 +135,7 @@ body.dark .history-container { background: #2d2d2d; }
   font-size: 1.2em;
   margin-top: 0;
   display: flex; justify-content: space-between; align-items: center;
+  color: var(--accent);
 }
 .history-actions-top button {
   background: none;
@@ -142,6 +143,10 @@ body.dark .history-container { background: #2d2d2d; }
   font-size: 0.9em;
   margin-left: 5px;
   cursor: pointer;
+  color: var(--accent);
+}
+.history-actions-top button:hover {
+  text-decoration: underline;
 }
 .history-list {
   max-height: 200px;
@@ -394,7 +399,7 @@ document.getElementById("speakResult").addEventListener("click", () => {
   speakText(text, langCode);
 });
 
-// 翻譯
+// 翻譯功能
 async function translate() {
   const btn = document.getElementById("translateBtn");
   const input = document.getElementById("input").value.trim();
@@ -418,23 +423,20 @@ async function translate() {
     });
 
     const data = await res.json();
-
     if (data.error) {
       document.getElementById("result").textContent = "⚠️ 翻譯失敗：" + data.error;
     } else {
       document.getElementById("result").textContent = data.result;
-      document.getElementById("detectedLang").textContent = "來源語言：" + (data.detected || "未知");
+      document.getElementById("detectedLang").textContent = "來源語言：" + data.detected;
       saveHistory(input, data.result, data.detected, lang);
     }
   } catch (err) {
     document.getElementById("result").textContent = "⚠️ 翻譯時發生錯誤，請稍後再試。";
-    console.error(err);
   } finally {
     btn.disabled = false;
   }
 }
 
-// 初始化
 document.getElementById("translateBtn").addEventListener("click", translate);
 loadHistory();
 </script>
