@@ -5,7 +5,6 @@
 <title>番茄翻譯 Tomato Translate</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-/* ---- 原樣式，和之前相同 ---- */
 :root {
   --bg-light: #fdfdfd;
   --bg-dark: #1f1f1f;
@@ -15,7 +14,6 @@
   --text-light: #222;
   --text-dark: #eee;
 }
-
 body {
   margin: 0; font-family: 'Segoe UI','微軟正黑體',sans-serif;
   background: var(--bg-light); color: var(--text-light);
@@ -36,14 +34,23 @@ header {
 }
 header h1 { font-size: 1.8rem; margin: 0; color: var(--accent); }
 
-.theme-toggle {
-  width: 40px; height: 40px; border: none; border-radius: 50%;
-  background: transparent; cursor: pointer; font-size: 1.3em;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-light); transition: background 0.2s;
+.nav-btns {
+  display: flex; gap: 10px;
 }
-body.dark .theme-toggle { color: var(--text-dark); }
-.theme-toggle:hover { background: rgba(0,0,0,0.05); }
+.nav-btns a, .theme-toggle {
+  font-size: 0.9em;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text-light);
+  background: rgba(0,0,0,0.05);
+}
+body.dark .nav-btns a, body.dark .theme-toggle {
+  color: var(--text-dark); background: rgba(255,255,255,0.08);
+}
+.nav-btns a:hover, .theme-toggle:hover { background: rgba(0,0,0,0.1); }
 
 .field { margin-bottom: 1.2rem; }
 
@@ -108,22 +115,6 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
   background: none; border: none; cursor: pointer;
   width: 32px; height: 32px; padding: 0;
 }
-.copy-btn img {
-  width: 100%; height: auto; display: block;
-}
-
-.loading {
-  display: none;
-  position: absolute;
-  left: 50%; top: 50%; transform: translate(-50%, -50%);
-  font-size: 1em; color: var(--accent);
-}
-.result-box.loading-box .loading {
-  display: block;
-}
-.result-box.loading-box .result-text {
-  opacity: 0.4;
-}
 
 .toast {
   position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8);
@@ -131,6 +122,53 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
   opacity: 0; transition: opacity 0.3s;
 }
 .toast.show { opacity: 1; }
+
+.history-container {
+  margin-top: 1.5rem;
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 1rem;
+}
+body.dark .history-container { background: #2d2d2d; }
+
+.history-container h2 {
+  font-size: 1.2em;
+  margin-top: 0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.history-actions-top button {
+  background: none;
+  border: none;
+  font-size: 0.9em;
+  margin-left: 5px;
+  cursor: pointer;
+}
+.history-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: .5rem;
+}
+.history-item {
+  padding: .4rem .2rem;
+  border-bottom: 1px solid #ddd;
+  display: flex; justify-content: space-between; align-items: center;
+}
+body.dark .history-item { border-color: #444; }
+.history-texts {
+  flex: 1;
+  margin-right: 6px;
+  cursor: pointer;
+}
+.history-texts small {
+  display: block;
+  color: gray;
+  font-size: 0.8em;
+}
+.history-actions button {
+  background: none; border: none; cursor: pointer;
+  margin-left: 4px; font-size: 1em;
+}
+.starred { color: gold; }
 
 @media (max-width: 700px) {
   .result-container { grid-template-columns: 1fr; }
@@ -141,7 +179,10 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
 <div class="wrapper">
   <header>
     <h1>番茄翻譯 🍅</h1>
-    <button class="theme-toggle" id="themeToggle">🌙</button>
+    <div class="nav-btns">
+      <a href="file.html">📄 文件翻譯</a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
 
   <div class="field">
@@ -160,25 +201,35 @@ body.dark .result-header { background: rgba(255,255,255,0.08); }
       <div class="result-header">
         <span>原文</span>
         <div>
-          <button class="copy-btn" id="speakOriginal"><img src="speaker.png" alt="speak"></button>
+          <button class="copy-btn" id="speakOriginal">🔊</button>
           <button class="copy-btn" onclick="copyText('originalText')"><img src="copy.png" alt="copy"></button>
         </div>
       </div>
       <div class="result-text" id="originalText">（原文）</div>
-      <div class="loading">⏳ 載入中...</div>
     </div>
 
     <div class="result-box" id="resultBox">
       <div class="result-header">
         <span>翻譯結果</span>
         <div>
-          <button class="copy-btn" id="speakResult"><img src="speaker.png" alt="speak"></button>
+          <button class="copy-btn" id="speakResult">🔊</button>
           <button class="copy-btn" onclick="copyText('result')"><img src="copy.png" alt="copy"></button>
         </div>
       </div>
       <div id="detectedLang"></div>
       <div class="result-text" id="result">（翻譯結果）</div>
-      <div class="loading">⏳ 翻譯中...</div>
+    </div>
+  </div>
+
+  <div class="history-container">
+    <h2>翻譯歷史 
+      <span class="history-actions-top">
+        <button id="exportHistory">匯出 TXT</button>
+        <button id="clearHistory">清除全部</button>
+      </span>
+    </h2>
+    <div class="history-list" id="historyList">
+      <p style="text-align:center; color:gray; font-size:0.9em;">尚無紀錄</p>
     </div>
   </div>
 </div>
@@ -193,7 +244,6 @@ const API_BASE = window.location.hostname === "localhost"
 const languages = ["繁體中文","簡體中文","英文","日文","韓文","法文","德文","西班牙文","泰文","越南文"];
 const dropdownBtn = document.getElementById("selectedLang");
 const dropdownMenu = document.getElementById("langMenu");
-
 dropdownMenu.innerHTML = languages.map(lang => `<div>${lang}</div>`).join("");
 dropdownBtn.addEventListener("click", () => dropdownMenu.classList.toggle("active"));
 dropdownMenu.querySelectorAll("div").forEach(option => {
@@ -217,14 +267,89 @@ function showToast(msg) {
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 1500);
 }
-
 function copyText(id) {
   const text = document.getElementById(id).innerText;
   navigator.clipboard.writeText(text);
   showToast("已複製！");
 }
 
-// 語音朗讀函式
+// 歷史紀錄
+function loadHistory() {
+  const history = JSON.parse(localStorage.getItem("translateHistory") || "[]");
+  const list = document.getElementById("historyList");
+  if (history.length === 0) {
+    list.innerHTML = `<p style="text-align:center; color:gray; font-size:0.9em;">尚無紀錄</p>`;
+    return;
+  }
+  list.innerHTML = "";
+  history.forEach((item, index) => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.innerHTML = `
+      <div class="history-texts" onclick="restoreHistory(${index})">
+        <strong>${item.original}</strong>
+        <small>${item.result}</small>
+      </div>
+      <div class="history-actions">
+        <button onclick="copyFromHistory(${index})">📋</button>
+        <button onclick="toggleStar(${index})" class="${item.star ? 'starred' : ''}">⭐</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+function saveHistory(original, result, detected, targetLang) {
+  let history = JSON.parse(localStorage.getItem("translateHistory") || "[]");
+  const starred = history.filter(h => h.star);
+  const nonStarred = history.filter(h => !h.star);
+  nonStarred.unshift({ original, result, detected, targetLang, star: false });
+  let newHistory = [...starred, ...nonStarred];
+  if (newHistory.length > 10) newHistory = newHistory.slice(0, 10);
+  localStorage.setItem("translateHistory", JSON.stringify(newHistory));
+  loadHistory();
+}
+function copyFromHistory(index) {
+  const history = JSON.parse(localStorage.getItem("translateHistory") || "[]");
+  navigator.clipboard.writeText(history[index].result);
+  showToast("已複製翻譯結果！");
+}
+function restoreHistory(index) {
+  const history = JSON.parse(localStorage.getItem("translateHistory") || "[]");
+  document.getElementById("input").value = history[index].original;
+  document.getElementById("originalText").textContent = history[index].original;
+  document.getElementById("result").textContent = history[index].result;
+  document.getElementById("detectedLang").textContent = "來源語言：" + history[index].detected;
+}
+function toggleStar(index) {
+  const history = JSON.parse(localStorage.getItem("translateHistory") || "[]");
+  history[index].star = !history[index].star;
+  localStorage.setItem("translateHistory", JSON.stringify(history));
+  loadHistory();
+}
+document.getElementById("clearHistory").addEventListener("click", () => {
+  localStorage.removeItem("translateHistory");
+  loadHistory();
+});
+document.getElementById("exportHistory").addEventListener("click", () => {
+  const history = JSON.parse(localStorage.getItem("translateHistory") || "[]");
+  if (history.length === 0) {
+    showToast("⚠️ 沒有紀錄可以匯出");
+    return;
+  }
+  let content = "番茄翻譯 - 翻譯歷史\n\n";
+  history.forEach((h, i) => {
+    content += `${i + 1}. 原文：${h.original}\n   翻譯結果：${h.result}\n   來源語言：${h.detected}\n   目標語言：${h.targetLang}\n\n`;
+  });
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "翻譯歷史.txt";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
+
+// 語音朗讀
 function speakText(text, langCode = "zh-TW") {
   if (!window.speechSynthesis) {
     showToast("⚠️ 瀏覽器不支援語音朗讀！");
@@ -236,7 +361,6 @@ function speakText(text, langCode = "zh-TW") {
   window.speechSynthesis.speak(utter);
 }
 
-// 判斷語言代碼（簡化版）
 function getLangCodeByName(langName) {
   if (langName.includes("英文")) return "en-US";
   if (langName.includes("日文")) return "ja-JP";
@@ -270,6 +394,7 @@ document.getElementById("speakResult").addEventListener("click", () => {
   speakText(text, langCode);
 });
 
+// 翻譯
 async function translate() {
   const btn = document.getElementById("translateBtn");
   const input = document.getElementById("input").value.trim();
@@ -285,9 +410,6 @@ async function translate() {
   document.getElementById("result").textContent = "";
   document.getElementById("detectedLang").textContent = "";
 
-  document.getElementById("originalBox").classList.add("loading-box");
-  document.getElementById("resultBox").classList.add("loading-box");
-
   try {
     const res = await fetch(`${API_BASE}/translate`, {
       method: "POST",
@@ -302,18 +424,19 @@ async function translate() {
     } else {
       document.getElementById("result").textContent = data.result;
       document.getElementById("detectedLang").textContent = "來源語言：" + (data.detected || "未知");
+      saveHistory(input, data.result, data.detected, lang);
     }
   } catch (err) {
     document.getElementById("result").textContent = "⚠️ 翻譯時發生錯誤，請稍後再試。";
     console.error(err);
   } finally {
     btn.disabled = false;
-    document.getElementById("originalBox").classList.remove("loading-box");
-    document.getElementById("resultBox").classList.remove("loading-box");
   }
 }
 
+// 初始化
 document.getElementById("translateBtn").addEventListener("click", translate);
+loadHistory();
 </script>
 </body>
 </html>
