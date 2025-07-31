@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>番茄翻譯 Tomato Traslate - 文件翻譯</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg-light: #fdfdfd;
+  --bg-dark: #1f1f1f;
+  --card-light: #ffffff;
+  --card-dark: #2a2a2a;
+  --accent: tomato;
+  --text-light: #222;
+  --text-dark: #eee;
+}
+body {
+  margin: 0; font-family: 'Segoe UI','微軟正黑體',sans-serif;
+  background: var(--bg-light); color: var(--text-light);
+  display: flex; justify-content: center; padding: 2rem; min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+body.dark { background: var(--bg-dark); color: var(--text-dark); }
+
+.wrapper {
+  width: 100%; max-width: 850px; background: var(--card-light); 
+  border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  padding: 2rem; position: relative; transition: background 0.3s;
+}
+body.dark .wrapper { background: var(--card-dark); }
+
+header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;
+}
+header h1 { font-size: 1.8rem; margin: 0; color: var(--accent); }
+
+.nav-btns {
+  display: flex; gap: 10px;
+}
+.nav-btns a, .theme-toggle {
+  font-size: 0.9em;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text-light);
+  background: rgba(0,0,0,0.05);
+}
+body.dark .nav-btns a, body.dark .theme-toggle {
+  color: var(--text-dark); background: rgba(255,255,255,0.08);
+}
+.nav-btns a:hover, .theme-toggle:hover { background: rgba(0,0,0,0.1); }
+
+.field { margin-bottom: 1.2rem; }
+
+.dropdown { position: relative; }
+.dropdown-btn {
+  padding: 12px; width: 100%; font-size: 1em; background: #f8f8f8;
+  border: 1px solid #ccc; border-radius: 10px; cursor: pointer; text-align: left;
+}
+body.dark .dropdown-btn { background: #444; border-color: #666; color: #eee; }
+.dropdown-btn::after {
+  content: "▼"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 0.8em; color: #888;
+}
+.dropdown-menu {
+  display: none;
+  position: absolute; top: 110%; left: 0; right: 0; background: #fff;
+  border: 1px solid #ccc; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  max-height: 250px; overflow-y: auto; z-index: 10;
+}
+.dropdown-menu.active { display: block; }
+body.dark .dropdown-menu { background: #444; border-color: #666; }
+.dropdown-menu div { padding: 10px 14px; cursor: pointer; }
+.dropdown-menu div:hover { background-color: #ffe4d1; }
+body.dark .dropdown-menu div:hover { background: #555; }
+
+button.action {
+  width: 100%; background: var(--accent); color: #fff; font-weight: bold; border: none;
+  border-radius: 10px; cursor: pointer; margin-top: 1.2rem; font-size: 1.1em; padding: 12px;
+}
+button.action:hover { background: #ff6347; }
+
+.result-box {
+  margin-top: 1.5rem;
+  background: #f5f5f5; border-radius: 12px; display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+}
+body.dark .result-box { background: #3a3a3a; }
+
+.result-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; font-size: 0.9em; background: rgba(0,0,0,0.05);
+}
+body.dark .result-header { background: rgba(255,255,255,0.08); }
+.result-text { padding: 10px; min-height: 150px; white-space: pre-wrap; flex: 1; }
+
+.copy-btn {
+  background: none; border: none; cursor: pointer;
+  width: 32px; height: 32px; padding: 0;
+}
+
+.toast {
+  position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8);
+  color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.9em;
+  opacity: 0; transition: opacity 0.3s;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <h1>文件翻譯 📄</h1>
+    <div class="nav-btns">
+      <a href="index.html">🏠 回首頁</a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+  </header>
+
+  <div class="field">
+    <label>選擇目標語言：</label>
+    <div class="dropdown" id="langDropdown">
+      <div class="dropdown-btn" id="selectedLang">繁體中文</div>
+      <div class="dropdown-menu" id="langMenu"></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>上傳文件 (TXT / DOCX / PDF)：</label>
+    <input type="file" id="fileInput" accept=".txt,.docx,.pdf">
+    <button class="action" id="fileTranslateBtn">翻譯文件</button>
+  </div>
+
+  <div class="result-box">
+    <div class="result-header">
+      <span>文件翻譯結果</span>
+      <button class="copy-btn" onclick="copyText('fileResult')"><img src="copy.png" alt="copy"></button>
+    </div>
+    <div class="result-text" id="fileResult">（等待上傳文件）</div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已複製！</div>
+
+<script>
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:5000"
+  : "https://tomato-translate.onrender.com";
+
+const languages = ["繁體中文","簡體中文","英文","日文","韓文","法文","德文","西班牙文","泰文","越南文"];
+const dropdownBtn = document.getElementById("selectedLang");
+const dropdownMenu = document.getElementById("langMenu");
+dropdownMenu.innerHTML = languages.map(lang => `<div>${lang}</div>`).join("");
+dropdownBtn.addEventListener("click", () => dropdownMenu.classList.toggle("active"));
+dropdownMenu.querySelectorAll("div").forEach(option => {
+  option.addEventListener("click", () => {
+    dropdownBtn.textContent = option.textContent;
+    dropdownMenu.classList.remove("active");
+  });
+});
+window.addEventListener("click", e => {
+  if (!document.getElementById("langDropdown").contains(e.target)) dropdownMenu.classList.remove("active");
+});
+
+document.getElementById("themeToggle").addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  document.getElementById("themeToggle").textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+});
+
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 1500);
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text);
+  showToast("已複製！");
+}
+
+document.getElementById("fileTranslateBtn").addEventListener("click", async () => {
+  const fileInput = document.getElementById("fileInput");
+  const fileResult = document.getElementById("fileResult");
+  if (fileInput.files.length === 0) {
+    showToast("⚠️ 請先選擇檔案！");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+  formData.append("target_lang", document.getElementById("selectedLang").textContent);
+
+  fileResult.textContent = "⏳ 文件翻譯中...";
+  try {
+    const res = await fetch(`${API_BASE}/translate_file`, {
+      method: "POST",
+      body: formData
+    });
+    const data = await res.json();
+    if (data.error) {
+      fileResult.textContent = "⚠️ 翻譯失敗：" + data.error;
+    } else {
+      fileResult.textContent = data.result;
+    }
+  } catch (err) {
+    fileResult.textContent = "⚠️ 翻譯文件時發生錯誤，請稍後再試。";
+  }
+});
+</script>
+</body>
+</html>
